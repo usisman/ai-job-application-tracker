@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using JobApplicationTracker.Api.Models;
+using Microsoft.EntityFrameworkCore;
+using JobApplicationTracker.Api.Data;
 using JobApplicationTracker.Api.DTOs;
+using JobApplicationTracker.Api.Models;
 
 namespace JobApplicationTracker.Api.Controllers;
 
@@ -8,41 +10,25 @@ namespace JobApplicationTracker.Api.Controllers;
 [Route("api/[controller]")]
 public class ApplicationsController : ControllerBase
 {
-    private static readonly List<JobApplication> Applications = new()
+    private readonly AppDbContext _context;
+
+    public ApplicationsController(AppDbContext context)
     {
-        new JobApplication
-        {
-            Id = 1,
-            Company = "Otoplan",
-            Position = "Junior Full-Stack Developer",
-            Status = "Applied"
-        },
-        new JobApplication
-        {
-            Id = 2,
-            Company = "Leartes Studios",
-            Position = "Backend Developer",
-            Status = "Interview"
-        },
-        new JobApplication
-        {
-            Id = 3,
-            Company = "OneSec",
-            Position = "Embedded Software & Robotics Developer",
-            Status = "Challenge"
-        }
-    };
+        _context = context;
+    }
 
     [HttpGet]
-    public IActionResult GetApplications()
+    public async Task<IActionResult> GetApplications()
     {
-        return Ok(Applications);
+        var applications = await _context.JobApplications.ToListAsync();
+
+        return Ok(applications);
     }
 
     [HttpGet("{id}")]
-    public IActionResult GetApplicationById(int id)
+    public async Task<IActionResult> GetApplicationById(int id)
     {
-        var application = Applications.FirstOrDefault(x => x.Id == id);
+        var application = await _context.JobApplications.FirstOrDefaultAsync(x => x.Id == id);
 
         if (application is null)
         {
@@ -53,54 +39,22 @@ public class ApplicationsController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult CreateApplication(CreateJobApplicationDto request)
+    public async Task<IActionResult> CreateApplication(CreateJobApplicationDto request)
     {
         var newApplication = new JobApplication
         {
-            Id = Applications.Max(x => x.Id) + 1,
             Company = request.Company,
             Position = request.Position,
             Status = request.Status
         };
 
-        Applications.Add(newApplication);
+        _context.JobApplications.Add(newApplication);
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(
             nameof(GetApplicationById),
             new { id = newApplication.Id },
             newApplication
         );
-    }
-
-    [HttpPut("{id}")]
-    public IActionResult UpdateApplication(int id, UpdateJobApplicationDto request)
-    {
-        var application = Applications.FirstOrDefault(x => x.Id == id);
-
-        if (application is null)
-        {
-            return NotFound($"Application with id {id} was not found.");
-        }
-
-        application.Company = request.Company;
-        application.Position = request.Position;
-        application.Status = request.Status;
-
-        return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult DeleteApplication(int id)
-    {
-        var application = Applications.FirstOrDefault(x => x.Id == id);
-
-        if (application is null)
-        {
-            return NotFound($"Application with id {id} was not found.");
-        }
-
-        Applications.Remove(application);
-
-        return NoContent();
     }
 }
