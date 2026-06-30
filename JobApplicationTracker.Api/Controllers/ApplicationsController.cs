@@ -57,4 +57,39 @@ public class ApplicationsController : ControllerBase
             newApplication
         );
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateApplication(int id, UpdateJobApplicationDto request)
+    {
+        var application = await _context.JobApplications.FirstOrDefaultAsync(x => x.Id == id);
+    
+        if (application is null)
+        {
+            return NotFound($"Application with id {id} was not found.");
+        }
+    
+        application.Company = request.Company;
+        application.Position = request.Position;
+        application.Status = request.Status;
+    
+        await _context.SaveChangesAsync();
+    
+        return NoContent();
+    }
+    
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteApplication(int id)
+    {
+        var application = await _context.JobApplications.FirstOrDefaultAsync(x => x.Id == id);
+    
+        if (application is null)
+        {
+            return NotFound($"Application with id {id} was not found.");
+        }
+    
+        _context.JobApplications.Remove(application);
+        await _context.SaveChangesAsync();
+    
+        return NoContent();
+    }
 }
